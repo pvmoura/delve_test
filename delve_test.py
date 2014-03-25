@@ -4,11 +4,6 @@ import sys
 import re
 from urlparse import urlparse, unquote
 
-CONSUMER_KEY = "JGe2CslC9WB8pBVZMToOQ"
-CONSUMER_SECRET = "luOBw5IQRgmFatZ4rAuQhexGZc6NIErr4XsQIvYrcA"
-ACCESS_TOKEN = "1250131134-fWCFyqvR2XaZvTfG03v0ueWE5xAeghDTEi0zP3f"
-ACCESS_SECRET = "xeDrloqwXKUSnvd2LRTyxMxu2UoFSnud3gCPvGhmWls4T"
-
 def get_tweets(
     consumer_key="PxvzWak5FxIpDWtWaystmQ",
     consumer_secret="xlgC6Aht6CPS139HGkZb69ST71X1TSISxA8dYNwthk",
@@ -33,9 +28,6 @@ def get_tweets(
     raise Exception("; ".join([error['message'] for error in json['errors']]))
   return json
 
-
-### ADD error handling where page doesn't exist
-# {u'errors': [{u'message': u'Sorry, that page does not exist', u'code': 34}]}
 
 def convert_time_string(string):
   """ Take a Twitter datetime string and return its datetime representation
@@ -134,12 +126,11 @@ def count_domains(urls, screen_name, domains=None):
   return domains
 
 
-tlds = [line.strip() for line in open('tlds.txt') if line[0] not in "/\n"]
-
-def get_domain(url, tlds=tlds):
+def get_domain(url):
   """ taken from stack overflow to get true domain"""
-  url_elements = url.split('.')
 
+  tlds = [line.strip() for line in open('tlds.txt') if line[0] not in "/\n"]
+  url_elements = url.split('.')
   for i in range(-len(url_elements), 0):
       last_i_elements = url_elements[i:]
 
@@ -172,19 +163,22 @@ def submit_problem(data, endpoint="http://delvenews.com/api/matador/"):
 
 
 if __name__ == "__main__":
-  problem_data = get_problem()
+  # problem_data = get_problem()
+  problem_data = {u'twitter_handles': [u'ClintonHealth', u'ConnectWell', u'ConversationAge', u'CoralMDavenport', u'DKThomp', u'DLeonhardt', u'DTWillingham', u'Dahlialithwick', u'DanSchawbel', u'DanWaldo', u'DanielMorain', u'DanielPink', u'DanielSnowSmith', u'DavidAaker', u'DavidBannister', u'DavidFerris', u'DavidGrann', u'DavidGurteen', u'DavidLat', u'DawnC331', u'DebMeier', u'Dezeen', u'DianeEMeier', u'DianeRavitch', u'DickKnox', u'Doctor_V', u'DonaldShoup', u'DrOz', u'DrSBoyer', u'DrWeil', u'DuaneForrester', u'Duncande', u'EICES_Columbia', u'ENERGY', u'EPRINews', u'EW', u'EYellin', u'EdwardLangJr', u'ElectricAirwave', u'ElenaVerlee', u'EllnMllr', u'Emma_Marris', u'Epocrates', u'EricTopol', u'EricaMartinson', u'ErnestMoniz', u'Eurasiagroup', u'FCousteau', u'Farzad_ONC', u'FishBizCo'], u'begin_date': u'2014-02-20', u'end_date': u'2014-03-05', u'match_criteria': 3}
+
   twitter_handles = problem_data["twitter_handles"]
   start_date = problem_data['begin_date']
   end_date = problem_data['end_date']
-  match_count = problem_data['match_count']
+  match_count = problem_data['match_criteria']
   domains = {}
   for handle in twitter_handles:
+    print handle
     tweets = get_tweets_in_date_range(start_date, end_date, screen_name=handle)
     all_urls = []
     for tweet in tweets:
       tweet_urls = get_links_from_tweet(tweet)
       if tweet_urls:
-        all_urls.extend(t_urls)
+        all_urls.extend(tweet_urls)
     domains = count_domains(all_urls, handle, domains)
 
   counts = {}
@@ -211,6 +205,6 @@ if __name__ == "__main__":
     if temp:
       big_count[k] = temp
 
-  submit_problem(simplejson.dumps(big_count))
+  #submit_problem(simplejson.dumps(big_count))
 
 
