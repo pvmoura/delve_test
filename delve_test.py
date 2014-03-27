@@ -3,6 +3,7 @@ from requests_oauthlib import OAuth1
 import sys, time
 import re
 from urlparse import urlparse, unquote
+from requests.exceptions import ConnectionError
 
 class TwitterException(Exception):
   pass
@@ -82,6 +83,8 @@ def get_tweets_in_date_range(start, end, screen_name):
         if not culled_tweets:
           return False
         break
+    if max_id is not None and (tweets and tweets[0]['id_str'] == max_id):
+      tweets.pop(0)
     oldest_tweet, newest_tweet = tweets[-1], tweets[0]
     first_date = convert_time_string(oldest_tweet['created_at'])
     last_date = convert_time_string(newest_tweet['created_at'])
@@ -104,6 +107,14 @@ def get_links_from_tweet(tweet):
 
   return None
 
+def do_a_request(url, params=None):
+  try:
+    r = requests.get(url=url, params=params)
+  except ConnectionError as e:
+    with open('request_errors.txt', 'a') as f:
+      f.write(e.message)
+    return None
+  return r
 
 
 def count_domains(urls, screen_name, domains):
@@ -129,13 +140,11 @@ def count_domains(urls, screen_name, domains):
   for u in urls:
     long_url = 'http://api.longurl.org/v2/expand'
     params = {'url': u, 'format': 'json'}
-    try:
-      r = requests.get(url=long_url, params=params)
-    except requests.ConnectionError as e:
-        with open('request_errors.txt', 'a') as f:
-          f.write(e.message)
-        continue
 
+    r = do_a_request(long_url, params)
+    if r is None:
+      continue
+    
     json = simplejson.loads(r.text)
     r.close()
     if json.has_key('long-url'):
@@ -147,12 +156,10 @@ def count_domains(urls, screen_name, domains):
        json['messages'][0]['message'] == 'Input is oversize: NOT_SHORTURL.':
        add_domain_to_dict(domains, u)
     else:
-      try:
-        request = requests.get(u)
-      except requests.ConnectionError as e:
-        with open('request_errors.txt', 'a') as f:
-          f.write(e.message)
+      request = do_a_request(u)
+      if request is None:
         continue
+      
       if request.status_code == 200:
         add_domain_to_dict(domains, request.url)
       else:
@@ -235,11 +242,12 @@ if __name__ == "__main__":
         all_urls.extend(tweet_urls)
     domains = count_domains(all_urls, handle, domains)
 
+
     with open('temp.txt', 'w') as f:
       f.write(str(domains))
 
 
-  
+
   # create submission object
   users = {}  
   for domain, user_counts in domains.iteritems():
@@ -255,7 +263,7 @@ if __name__ == "__main__":
             users[handle][handle_again] = {}
           users[handle][handle_again][domain] = True
 
-  s = submit_problem(simplejson.dumps(users))
-  print s
+  #s = submit_problem(simplejson.dumps(users))
+  #print s
 
 
